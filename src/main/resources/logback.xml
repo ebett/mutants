@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <property name="LOG_PATH" value="./logs"/>
+
+    <appender name="mainAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <File>${LOG_PATH}/restapi-main.log</File>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <FileNamePattern>${LOG_PATH}/restapi-main.%d{yyyy-MM-dd}.log</FileNamePattern>
+            <totalSizeCap>2GB</totalSizeCap>
+            <!-- keep 30 days' worth of history -->
+            <maxHistory>3</maxHistory>
+        </rollingPolicy>
+
+        <encoder>
+            <!--Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{35} - %msg %n</Pattern-->
+            <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger - %msg %n</Pattern>
+        </encoder>
+    </appender>
+
+    <logger name="sample.data.rest" additivity="false">
+        <level value="DEBUG"/>
+        <appender-ref ref="mainAppender"/>
+    </logger>
+
+    <root>
+        <level value="INFO"/>
+        <appender-ref ref="mainAppender"/>
+        <!--appender-ref ref="domainAppender"/-->
+    </root>
+</configuration>
