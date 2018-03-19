@@ -15,6 +15,11 @@ public class Mutant {
         this.dna = dna;
     }
 
+    /**
+     * Produces a DNA single string representation.
+     * Concatenates all dna rows with '@' character
+     * @return dna string
+     */
     public String getKey(){
         if (dna == null){
             return null;

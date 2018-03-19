@@ -33,6 +33,9 @@ public class MutantsController {
     @RequestMapping("/mutant")
     @PostMapping
     public ResponseEntity isMutant(@RequestBody Mutant mutant) {
+        if(mutant == null || mutant.getKey() == null){
+            return ResponseEntity.badRequest().build();
+        }
         return mutantService.isMutant(mutant.getKey()) ?
                 ResponseEntity.ok().build() :
                 ResponseEntity.status(HttpStatus.FORBIDDEN).build();

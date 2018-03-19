@@ -26,7 +26,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-// Separate profile for web tests to avoid clashing databases
 public class MutantsControllerTests {
 
     @Autowired
@@ -43,7 +42,7 @@ public class MutantsControllerTests {
     private ObjectMapper objectMapper;
 
     @Test()
-    public void testMutant1() throws Exception {
+    public void mutant_ok() throws Exception {
         Mutant mutant = new Mutant();
         mutant.setDna(new String[]{"ATGCGA", "CAGTGC", "TTATGT", "AGAAGG", "CCCCTA", "TCACTG"});
         this.mvc.perform(post("/mutant").contentType(MediaType.APPLICATION_JSON)
@@ -53,7 +52,7 @@ public class MutantsControllerTests {
     }
 
     @Test
-    public void testMutant2() throws Exception {
+    public void dna_empty() throws Exception {
         Mutant mutant = new Mutant();
         mutant.setDna(new String[]{""});
         this.mvc.perform(post("/mutant").contentType(MediaType.APPLICATION_JSON)
@@ -63,47 +62,70 @@ public class MutantsControllerTests {
     }
 
 
-    @Test
-    public void testMutant3() throws Exception {
-        Mutant mutant = new Mutant();
-        mutant.setDna(new String[]{""});
-        this.mvc.perform(post("/mutant").contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(mutant)))
-                .andExpect(status().isForbidden());
-
-        //	.andExpect(content().string(containsString("hotels")));
-    }
 
     @Test
-    public void testMutant4() throws Exception {
+    public void null_dna() throws Exception {
         Mutant mutant = new Mutant();
-        mutant.setDna( new String[] {
-                "ATGCGA",
-                "CAGTGC",
-                "TTATTT",
-                "AGACGG",
-                "GCGTCA",
-                "TCACTG"});
+        mutant.setDna(null);
         this.mvc.perform(post("/mutant").contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(mutant)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isBadRequest());
 
-        //	.andExpect(content().string(containsString("hotels")));
     }
 
 
     @Test
-    public void testStats1() throws Exception {
+    public void null_mutant() throws Exception {
+        this.mvc.perform(post("/mutant").contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(null)))
+                .andExpect(status().isBadRequest());
+
+    }
+
+    @Test
+    public void mutant_fail() throws Exception {
+        Mutant mutant = new Mutant();
+        mutant.setDna( new String[] {"ATGCGA", "CAGTGC", "TTATTT", "AGACGG", "GCGTCA", "TCACTG"});
+        this.mvc.perform(post("/mutant").contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(mutant)))
+                .andExpect(status().isForbidden());
+
+        //	.andExpect(content().string(containsString("")));
+    }
+
+
+    @Test
+    public void stats_ok() throws Exception {
         this.mvc.perform(get("/stats"))
                 .andExpect(status().isOk());
         //	.andExpect(content().string(containsString("hotels")));
     }
 
     @Test
-    public void testStats2() throws Exception {
+    public void stats_ok2() throws Exception {
         this.mvc.perform(get("/stats"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("count_mutant_dna")));
+            //    .andExpect(content().string(containsString("\"count_mutant_dna\": 0")))
+        .andExpect(content().string("{\"count_mutant_dna\":0,\"count_human_dna\":0,\"ratio\":\"0,00\"}"));
+    }
+
+    @Test
+    public void stats_ok3() throws Exception {
+        Mutant mutantFail = new Mutant();
+        mutantFail.setDna( new String[] {"ATGCGA", "CAGTGC", "TTATTT", "AGACGG", "GCGTCA", "TCACTG"});
+
+        this.mvc.perform(post("/mutant").contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(mutantFail)));
+
+        Mutant mutantOk = new Mutant();
+        mutantOk.setDna(new String[]{"ATGCGA", "CAGTGC", "TTATGT", "AGAAGG", "CCCCTA", "TCACTG"});
+        this.mvc.perform(post("/mutant").contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(mutantOk)));
+
+
+        this.mvc.perform(get("/stats"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("{\"count_mutant_dna\":1,\"count_human_dna\":1,\"ratio\":\"1,00\"}"));
     }
 
 

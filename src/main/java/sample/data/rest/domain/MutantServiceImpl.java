@@ -5,13 +5,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 import sample.data.rest.domain.entities.DnaResult;
 import sample.data.rest.domain.entities.Statistic;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 /**
  * @author Esteban Bett
@@ -92,7 +88,7 @@ public class MutantServiceImpl implements MutantService {
         }
 
         logger.info("Verifying diagonals NE to SW ...");
-        match = printDiagonalsNEtoSW(M);
+        match = verifyDiagonalsNEtoSW(M);
 
         if(match) {
             saveRecord(dnaKey, match);
@@ -100,13 +96,18 @@ public class MutantServiceImpl implements MutantService {
         }
 
         logger.info("Verifying diagonals NW to SE ...");
-        match = printDiagonalsNWtoSE(M);
+        match = verifyDiagonalsNWtoSE(M);
 
         saveRecord(dnaKey, match);
 
         return match;
     }
 
+    /**
+     * Save Dna result into database.
+     * @param dnaKey    dna key string
+     * @param isMutant  true if it is mutant
+     */
     private final void saveRecord(final String dnaKey, boolean isMutant) {
         DnaResult dnaResult = new DnaResult();
         dnaResult.setDna(dnaKey);
@@ -149,12 +150,9 @@ public class MutantServiceImpl implements MutantService {
      */
     @Override
     public Statistic getStatistic() {
-        final Statistic statistic = jdbcTemplate.queryForObject(queryStatistics, new RowMapper<Statistic>() {
-            @Override
-            public Statistic mapRow(ResultSet resultSet, int i) throws SQLException {
-                return new Statistic(resultSet.getLong(1), resultSet.getLong(2));
-            }
-        });
+        final Statistic statistic = jdbcTemplate.queryForObject(queryStatistics,
+                (resultSet, i) ->
+                        new Statistic(resultSet.getLong(1), resultSet.getLong(2)));
 
         logger.debug("{}", statistic);
 
@@ -168,25 +166,17 @@ public class MutantServiceImpl implements MutantService {
      * @return true or false
      */
     private boolean verifyLine(String s) {
-        if (s.indexOf("AAAA") >= 0) {
-            if (++ocurrences > 1) {
-                return true;
-            }
+        if (s.indexOf("AAAA") >= 0 && ++ocurrences > 1) {
+            return true;
         }
-        if (s.indexOf("GGGG") >= 0) {
-            if (++ocurrences > 1) {
-                return true;
-            }
+        if (s.indexOf("GGGG") >= 0 && ++ocurrences > 1) {
+            return true;
         }
-        if (s.indexOf("TTTT") >= 0) {
-            if (++ocurrences > 1) {
-                return true;
-            }
+        if (s.indexOf("TTTT") >= 0 && ++ocurrences > 1) {
+            return true;
         }
-        if (s.indexOf("CCCC") >= 0) {
-            if (++ocurrences > 1) {
-                return true;
-            }
+        if (s.indexOf("CCCC") >= 0 && ++ocurrences > 1) {
+            return true;
         }
         return false;
     }
@@ -197,7 +187,7 @@ public class MutantServiceImpl implements MutantService {
      * @param m matrix of characters
      * @return true or false
      */
-    private boolean printDiagonalsNEtoSW(char[][] m) {
+    private boolean verifyDiagonalsNEtoSW(char[][] m) {
         int xStart = 0;
         int yStart = 1;
 
@@ -214,9 +204,9 @@ public class MutantServiceImpl implements MutantService {
             } else
                 break;
 
-            int dsize = m[0].length - yLoop;
-            if(xLoop > 2 && dsize > 3){
-                char[] diagonal = new char[dsize];
+            int dsize = Math.min(m[0].length - yLoop, xLoop);
+            if(dsize > 3){
+                char[] diagonal = new char[dsize+1];
                 for (int c=0; xLoop >= 0 && yLoop < m[0].length; xLoop--, yLoop++) {
                     diagonal[c++] = m[xLoop][yLoop];
                 }
@@ -237,8 +227,7 @@ public class MutantServiceImpl implements MutantService {
      * @param m matrix of characters
      * @return true or false
      */
-    private boolean printDiagonalsNWtoSE(char[][] m) {
-
+    private boolean verifyDiagonalsNWtoSE(char[][] m) {
         int xStart = m.length - 1;
         int yStart = 1;
 
@@ -255,8 +244,8 @@ public class MutantServiceImpl implements MutantService {
             } else
                 break;
 
-            int dsize = m[0].length - yLoop;
-         //   if(xLoop > 3 && dsize > 3) {
+            int dsize = Math.min(m.length - xLoop, m[0].length - yLoop);
+            if(dsize > 3 ) {
                 char[] diagonal = new char[dsize];
                 for (int c = 0; xLoop < m.length && yLoop < m[0].length; xLoop++, yLoop++) {
                     diagonal[c++] = m[xLoop][yLoop];
@@ -267,7 +256,7 @@ public class MutantServiceImpl implements MutantService {
                 if (verifyLine(sdiagonal)) {
                     return true;
                 }
-         //   }
+            }
         }
         return false;
     }
